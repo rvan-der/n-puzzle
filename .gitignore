@@ -3,5 +3,6 @@
 *.pzl
 *.txt
 *.py
+.idea/
 build/
 out/
