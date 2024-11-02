@@ -102,7 +102,7 @@ public class Main {
             System.out.println("Usage: java Main [options ...] <file>");
             System.out.println("<file>: any readable file with a valid (but potentially unsolvable) n puzzle map");
             System.out.println("-b: bidirectional strategy");
-            System.out.println("-h <mul>: multiply the heuristic by this value (default to 5)");
+            System.out.println("-h <mul>: multiply the heuristic by this value (default to 10)");
             System.out.println("-g <mul>: multiply the depth by this value (default to 1)");
             System.out.println("-f <char>: chose a heuristic from the set:");
             System.out.println("   m -> manhattan distances (default)");
