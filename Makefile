@@ -1,25 +1,23 @@
-CC = javac
-CCFLAGS =
-
 MAIN = Main
 
-SRCS = $(shell find src -name "*.java")
-CLS = $(SRCS:src/%.java=build/%.class)
-.PHONY: all, clean, run
+SRCS = src/Main.java\
+        src/NPuzzleHeuristics.java\
+        src/NPuzzleNode.java\
+        src/NPuzzleOpenNodes.java\
+        src/NPuzzleSolution.java\
+        src/NPuzzleSolver.java\
+        src/NPuzzleState.java
 
-run: all
-	java -cp build Main test.pzl
+CLS = $(SRCS:src/%.java=build/%.class)
+
+.PHONY: all, clean, run
 
 all: ${CLS}
 
-${CLS}: sources.txt
-	javac -d build @sources.txt
-
-sources.txt: ${SRCS}
-	echo "${SRCS}" > sources.txt
+${CLS}: ${SRCS}
+	javac -d build $^
 
 clean:
 	rm -rf build
-	rm sources.txt
 
 #python2 npuzzle-gen.py 3 -s -i 7 > test.pzl

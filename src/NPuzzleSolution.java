@@ -1,15 +1,20 @@
-import java.util.HashMap;
-
 public class NPuzzleSolution {
-    final HashMap<Integer, Integer> indices = new HashMap<>();
+    final int[] indices;
     final NPuzzleState state;
 
+    NPuzzleSolution(NPuzzleState state) {
+        this.state = state;
+        indices = new int[state.size * state.size];
+        for (int i = 0; i < state.size * state.size; ++i)
+            indices[state.pieces[i]] = i;
+    }
+
     NPuzzleSolution(int size) {
-        int[] result = new int[size * size];
+        short[] result = new short[size * size];
         int x, y, iy, ix, offsetR, offsetL, offsetU, offsetD;
         x = y = iy = offsetR = offsetL = offsetU = offsetD = 0;
         ix = 1;
-        for (int i = 1; i < size * size; i++) {
+        for (short i = 1; i < size * size; i++) {
             result[x + size * y] = i;
             if (ix == 1 && x == size - offsetR - 1) {
                 ix = 0;
@@ -35,9 +40,28 @@ public class NPuzzleSolution {
             y += iy;
         }
         result[x + size * y] = 0;
+        indices = new int[size * size];
         for (int i = 0; i < size * size; ++i)
-            indices.put(result[i], i);
-        state = new NPuzzleState(result, size);
+            indices[result[i]] = i;
+        state = new NPuzzleState(result, (byte)size);
+    }
+
+    boolean isSolvable(NPuzzleState state) {
+        int acc = 0;
+        short size = (short)(state.size * state.size);
+        for (short i = 0; i < size; ++i) {
+            int m = state.pieces[indices[(i + 1) % size]];
+            if (m == 0)
+                continue;
+            for (int j = i + 1; j < size; ++j) {
+                int t = state.pieces[indices[(j + 1) % size]];
+                if (t == 0)
+                    continue;
+                if (m > t)
+                    ++acc;
+            }
+        }
+        return acc % 2 == 0;
     }
 
     boolean isSolved(NPuzzleState state) {

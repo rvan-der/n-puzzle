@@ -3,36 +3,53 @@ import java.util.function.BiFunction;
 
 public class NPuzzleSolver {
     final NPuzzleSolution solution;
-    final NPuzzleOpenNodes openNodes = new NPuzzleOpenNodes();
-    final HashMap<NPuzzleState, NPuzzleNode> closedNodes = new HashMap<>();
-    boolean finished = false;
-    BiFunction<NPuzzleSolution, NPuzzleState, Integer> heuristicFunction;
+    final NPuzzleSolution startTarget;
+    final NPuzzleState start;
+    final NPuzzleOpenNodes openNodesStart = new NPuzzleOpenNodes();
+    final NPuzzleOpenNodes openNodesFinish = new NPuzzleOpenNodes();
+    final HashMap<NPuzzleState, NPuzzleNode> closedNodesStart = new HashMap<>();
+    final HashMap<NPuzzleState, NPuzzleNode> closedNodesFinish = new HashMap<>();
+    BiFunction<NPuzzleSolution, NPuzzleState, Double> heuristicFunction;
     int concurentMemoryUsage = 0;
+    final double gm, hm;
+    final boolean bidirectional;
 
-    NPuzzleSolver(NPuzzleState start, BiFunction<NPuzzleSolution, NPuzzleState, Integer> heuristicFunction) {
+    NPuzzleSolver(NPuzzleState start, BiFunction<NPuzzleSolution, NPuzzleState, Double> heuristicFunction, double gm, double hm, boolean bi) {
+        this.bidirectional = bi;
         this.heuristicFunction = heuristicFunction;
+        this.start = start;
         this.solution = new NPuzzleSolution(start.size);
-        NPuzzleNode startNode = new NPuzzleNode(null, 0, start, heuristicFunction.apply(solution, start));
-        this.openNodes.insert(startNode);
+        NPuzzleNode startNode = new NPuzzleNode(null, 0, start, heuristicFunction.apply(solution, start) * hm);
+        this.openNodesStart.insert(startNode);
+        this.startTarget = new NPuzzleSolution(start);
+        NPuzzleNode finishNode = new NPuzzleNode(null, 0, solution.state, heuristicFunction.apply(startTarget, solution.state) * hm);
+        this.openNodesFinish.insert(finishNode);
+        this.hm = hm;
+        this.gm = gm;
     }
 
-    ArrayList<NPuzzleNode> unfoldNode(NPuzzleNode node) {
+    boolean isSolvable() {
+        return solution.isSolvable(start);
+    }
+
+    ArrayList<NPuzzleNode> unfoldNode(NPuzzleNode node, NPuzzleOpenNodes openNodes, HashMap<NPuzzleState, NPuzzleNode> closedNodes, NPuzzleSolution target) {
         ArrayList<NPuzzleNode> result = new ArrayList<NPuzzleNode>();
-        for (NPuzzleState state : newStates(node.state)) {
-            if (openNodes.contains(state)) {
-                if (this.openNodes.get(state).depth > node.depth + 1) {
-                    result.add(new NPuzzleNode(node, node.depth + 1, state, openNodes.get(state).heuristic));
-                    openNodes.remove(state);
+        for (NPuzzleState childState : newStates(node.state)) {
+            NPuzzleNode duplicate;
+            if ((duplicate = openNodes.get(childState)) != null) {
+                if (duplicate.depth > node.depth + gm) {
+                    result.add(new NPuzzleNode(node, node.depth + gm, childState, duplicate.heuristic));
+                    openNodes.remove(childState);
                 }
             }
-            else if (closedNodes.containsKey(state)) {
-                if (this.closedNodes.get(state).depth > node.depth + 1) {
-                    result.add(new NPuzzleNode(node, node.depth + 1, state, closedNodes.get(state).heuristic));
-                    closedNodes.remove(state);
+            else if ((duplicate = closedNodes.get(childState)) != null) {
+                if (duplicate.depth > node.depth + gm) {
+                    result.add(new NPuzzleNode(node, node.depth + gm, childState, duplicate.heuristic));
+                    closedNodes.remove(childState);
                 }
             }
             else
-                result.add(new NPuzzleNode(node, node.depth + 1, state, heuristicFunction.apply(solution, state)));
+                result.add(new NPuzzleNode(node, node.depth + gm, childState, heuristicFunction.apply(target, childState) * hm));
         }
         return result;
     }
@@ -44,25 +61,25 @@ public class NPuzzleSolver {
                 if (state.pieces[x + y * state.size] != 0)
                     continue;
                 if (x > 0) {
-                    int[] t = state.pieces.clone();
+                    short[] t = state.pieces.clone();
                     t[x + y * state.size] = t[x - 1 + y * state.size];
                     t[x - 1 + y * state.size] = 0;
                     states.add(new NPuzzleState(t, state.size));
                 }
                 if (x < state.size - 1) {
-                    int[] t = state.pieces.clone();
+                    short[] t = state.pieces.clone();
                     t[x + y * state.size] = t[x + 1 + y * state.size];
                     t[x + 1 + y * state.size] = 0;
                     states.add(new NPuzzleState(t, state.size));
                 }
                 if (y > 0) {
-                    int[] t = state.pieces.clone();
+                    short[] t = state.pieces.clone();
                     t[x + y * state.size] = t[x + (y - 1) * state.size];
                     t[x + (y - 1) * state.size] = 0;
                     states.add(new NPuzzleState(t, state.size));
                 }
                 if (y < state.size - 1) {
-                    int[] t = state.pieces.clone();
+                    short[] t = state.pieces.clone();
                     t[x + y * state.size] = t[x + (y + 1) * state.size];
                     t[x + (y + 1) * state.size] = 0;
                     states.add(new NPuzzleState(t, state.size));
@@ -73,19 +90,34 @@ public class NPuzzleSolver {
     }
 
     List<NPuzzleState> solve() {
-        concurentMemoryUsage = openNodes.nodes.size();
-        closedNodes.clear();
-        finished = false;
+        concurentMemoryUsage = openNodesStart.nodes.size() + openNodesFinish.nodes.size();
+        closedNodesStart.clear();
         NPuzzleNode node;
-        if (solution.isSolved(openNodes.peek().state))
-            return List.of(openNodes.pop().state);
-        while ((node = openNodes.pop()) != null) {
+        if (solution.isSolved(openNodesStart.peek().state))
+            return List.of(openNodesStart.pop().state);
+        while (openNodesStart.peek() != null || (bidirectional && openNodesFinish.peek() != null)) {
+            ArrayList<NPuzzleNode> unfolded;
+            NPuzzleSolution target;
+            NPuzzleOpenNodes openNodes;
+            HashMap<NPuzzleState, NPuzzleNode> closedNodes;
+            boolean toFinish = !bidirectional || (openNodesStart.peek().getScore() <= openNodesFinish.peek().getScore());
+            if (toFinish) {
+                openNodes = openNodesStart;
+                closedNodes = closedNodesStart;
+                target = solution;
+
+            } else {
+                openNodes = openNodesFinish;
+                closedNodes = closedNodesFinish;
+                target = startTarget;
+            }
+            node = openNodes.pop();
             closedNodes.put(node.state, node);
-            ArrayList<NPuzzleNode> unfolded = unfoldNode(node);
+            unfolded = unfoldNode(node, openNodes, closedNodes, target);
             for (NPuzzleNode neighbor : unfolded) {
-                if (solution.isSolved(neighbor.state)) {
+                if (target.isSolved(neighbor.state)) {
                     ArrayList<NPuzzleState> out = new ArrayList<>();
-                    out.add(solution.state);
+                    out.add(target.state);
                     out.addFirst(node.state);
                     NPuzzleNode parent;
                     while ((parent = node.prev) != null) {
@@ -94,10 +126,46 @@ public class NPuzzleSolver {
                     }
                     return out;
                 }
+                else if (toFinish && (openNodesFinish.contains(neighbor.state) || closedNodesFinish.containsKey(neighbor.state))) {
+                    ArrayList<NPuzzleState> out = new ArrayList<>();
+                    NPuzzleNode finishNode = openNodesFinish.get(neighbor.state);
+                    if (finishNode == null)
+                        finishNode = closedNodesFinish.get(neighbor.state);
+                    NPuzzleNode parent;
+                    out.add(finishNode.state);
+                    while ((parent = finishNode.prev) != null) {
+                        out.addLast(parent.state);
+                        finishNode = parent;
+                    }
+                    out.addFirst(node.state);
+                    while ((parent = node.prev) != null) {
+                        out.addFirst(parent.state);
+                        node = parent;
+                    }
+                    return out;
+                }
+                else if (!toFinish && (openNodesStart.contains(neighbor.state) || closedNodesStart.containsKey(neighbor.state))) {
+                    ArrayList<NPuzzleState> out = new ArrayList<>();
+                    NPuzzleNode startingNode = openNodesStart.get(neighbor.state);
+                    if (startingNode == null)
+                        startingNode = closedNodesStart.get(neighbor.state);
+                    NPuzzleNode parent;
+                    out.add(node.state);
+                    while ((parent = node.prev) != null) {
+                        out.addLast(parent.state);
+                        node = parent;
+                    }
+                    out.addFirst(startingNode.state);
+                    while ((parent = startingNode.prev) != null) {
+                        out.addFirst(parent.state);
+                        startingNode = parent;
+                    }
+                    return out;
+                }
                 else
                     openNodes.insert(neighbor);
             }
-            int total = closedNodes.size() + openNodes.nodes.size();
+            int total = closedNodesStart.size() + openNodesStart.nodes.size() + closedNodesFinish.size() + openNodesFinish.nodes.size();
             if (total > concurentMemoryUsage)
                 concurentMemoryUsage = total;
         }

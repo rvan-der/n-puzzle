@@ -12,8 +12,7 @@ public class NPuzzleOpenNodes {
 
     void insert(NPuzzleNode node) {
         if (!contains(node.state)) {
-            if (!sorted.add(node))
-                System.err.println("sbaf");
+            sorted.add(node);
             nodes.put(node.state, node);
             ++totalInsertions;
         }

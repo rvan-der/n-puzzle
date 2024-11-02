@@ -1,26 +1,32 @@
 public class NPuzzleNode implements Comparable<NPuzzleNode> {
-    final int depth;
-    final int heuristic;
+    final double depth;
+    final double heuristic;
     final NPuzzleNode prev;
     final NPuzzleState state;
 
-    NPuzzleNode(NPuzzleNode prev, int depth, NPuzzleState state, int heuristic) {
+    NPuzzleNode(NPuzzleNode prev, double depth, NPuzzleState state, double heuristic) {
         this.prev = prev;
         this.depth = depth;
         this.state = state;
         this.heuristic = heuristic;
     }
 
+    double getScore() { return depth + heuristic; }
+
     @Override
     public int compareTo(NPuzzleNode o) {
 //        if (depth != o.depth) return depth - o.depth;
 //        return heuristic - o.heuristic;
-        int cmp = Integer.compare(depth + heuristic, o.depth + o.heuristic);
-        if (cmp == 0)
-            cmp = hashCode() - o.hashCode();
-        if (cmp == 0)
+        double cmp = Double.compare(depth + heuristic, o.depth + o.heuristic);
+        if (cmp < 0)
             cmp = -1;
-        return cmp;
+        else if (cmp > 0)
+            cmp = 1;
+        if ((int)cmp == 0)
+            cmp = hashCode() - o.hashCode();
+        if ((int)cmp == 0)
+            cmp = -1;
+        return (int)cmp;
     }
 
     @Override
