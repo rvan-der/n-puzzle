@@ -57,7 +57,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        double hm = 5.;
+        double hm = 10.;
         double gm = 1.;
         boolean bi = false;
         BiFunction<NPuzzleSolution, NPuzzleState, Double> heuristicFunction = NPuzzleHeuristics::manhattanHeuristic;
