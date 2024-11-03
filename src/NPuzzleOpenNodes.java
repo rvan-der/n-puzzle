@@ -22,23 +22,15 @@ public class NPuzzleOpenNodes {
         return nodes.get(state);
     }
 
-    NPuzzleNode remove(NPuzzleNode node) {
-        NPuzzleNode out = nodes.remove(node.state);
-        if (out != null)
-            sorted.remove(out);
-        return out;
-    }
-
-    NPuzzleNode remove(NPuzzleState state) {
+    void remove(NPuzzleState state) {
         NPuzzleNode out = nodes.remove(state);
         if (out != null)
             sorted.remove(out);
-        return out;
     }
 
     NPuzzleNode pop() {
         if (sorted.isEmpty()) return null;
-        NPuzzleNode out = sorted.removeFirst();
+        NPuzzleNode out = sorted.pollFirst();
         if (out != null)
             nodes.remove(out.state);
         return out;

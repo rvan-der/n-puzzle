@@ -19,11 +19,10 @@ public class NPuzzleSolver {
         this.heuristicFunction = heuristicFunction;
         this.start = start;
         this.solution = new NPuzzleSolution(start.size);
-        NPuzzleNode startNode = new NPuzzleNode(null, 0, start, heuristicFunction.apply(solution, start) * hm);
-        this.openNodesStart.insert(startNode);
+        this.openNodesStart.insert(new NPuzzleNode(null, 0, start, heuristicFunction.apply(solution, start) * hm));
         this.startTarget = new NPuzzleSolution(start);
-        NPuzzleNode finishNode = new NPuzzleNode(null, 0, solution.state, heuristicFunction.apply(startTarget, solution.state) * hm);
-        this.openNodesFinish.insert(finishNode);
+        if (bi)
+            this.openNodesFinish.insert(new NPuzzleNode(null, 0, solution.state, heuristicFunction.apply(startTarget, solution.state) * hm));
         this.hm = hm;
         this.gm = gm;
     }
@@ -33,7 +32,7 @@ public class NPuzzleSolver {
     }
 
     ArrayList<NPuzzleNode> unfoldNode(NPuzzleNode node, NPuzzleOpenNodes openNodes, HashMap<NPuzzleState, NPuzzleNode> closedNodes, NPuzzleSolution target) {
-        ArrayList<NPuzzleNode> result = new ArrayList<NPuzzleNode>();
+        ArrayList<NPuzzleNode> result = new ArrayList<>();
         for (NPuzzleState childState : newStates(node.state)) {
             NPuzzleNode duplicate;
             if ((duplicate = openNodes.get(childState)) != null) {
@@ -118,10 +117,10 @@ public class NPuzzleSolver {
                 if (target.isSolved(neighbor.state)) {
                     ArrayList<NPuzzleState> out = new ArrayList<>();
                     out.add(target.state);
-                    out.addFirst(node.state);
+                    out.add(0, node.state);
                     NPuzzleNode parent;
                     while ((parent = node.prev) != null) {
-                        out.addFirst(parent.state);
+                        out.add(0, parent.state);
                         node = parent;
                     }
                     return out;
@@ -134,12 +133,12 @@ public class NPuzzleSolver {
                     NPuzzleNode parent;
                     out.add(finishNode.state);
                     while ((parent = finishNode.prev) != null) {
-                        out.addLast(parent.state);
+                        out.add(parent.state);
                         finishNode = parent;
                     }
-                    out.addFirst(node.state);
+                    out.add(0, node.state);
                     while ((parent = node.prev) != null) {
-                        out.addFirst(parent.state);
+                        out.add(0, parent.state);
                         node = parent;
                     }
                     return out;
@@ -152,12 +151,12 @@ public class NPuzzleSolver {
                     NPuzzleNode parent;
                     out.add(node.state);
                     while ((parent = node.prev) != null) {
-                        out.addLast(parent.state);
+                        out.add(parent.state);
                         node = parent;
                     }
-                    out.addFirst(startingNode.state);
+                    out.add(0, startingNode.state);
                     while ((parent = startingNode.prev) != null) {
-                        out.addFirst(parent.state);
+                        out.add(0, parent.state);
                         startingNode = parent;
                     }
                     return out;
